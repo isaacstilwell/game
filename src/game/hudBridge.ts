@@ -2,8 +2,9 @@ type HudEvent =
   | { type: 'hp-update';     value: number }
   | { type: 'shield-update'; value: number }
   | { type: 'enemy-count';   value: number }
-  | { type: 'wave-clear' }
-  | { type: 'player-dead' };
+  | { type: 'kill-count';    value: number }
+  | { type: 'wave-clear';    kills: number; escaped: number }
+  | { type: 'player-dead';   kills: number };
 
 type Listener = (event: HudEvent) => void;
 

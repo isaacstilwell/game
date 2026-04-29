@@ -20,7 +20,6 @@ export class AsteroidBelt {
     const material = new THREE.PointsMaterial({
       color: 0x515c63,
       size: 1,
-      sizeAttenuation: false,
     });
 
     while (radius < maxRadius) {
