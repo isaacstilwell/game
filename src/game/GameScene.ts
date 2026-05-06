@@ -14,7 +14,7 @@ const SHIELD_DMG                = 10;
 const HP_DMG                    = 10;
 const ISAAC_INFO_IDLE_ROTATION  = -0.00015;
 const PLAYER_START_Z            = 120;
-const PLAYER_FORWARD_SPEED      = 0.08;
+const PLAYER_FORWARD_SPEED      = 0.16;
 
 export class GameScene {
   private scene: THREE.Scene;
