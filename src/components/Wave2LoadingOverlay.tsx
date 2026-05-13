@@ -1,60 +1,37 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import MenuFrame from './MenuFrame';
-
-interface Props {
-  hull: number;
-  shields: number;
-  kills: number;
-  onContinue: () => void;
-  wave?: 1 | 2;
-}
 
 const font = "'UAV-OSD-Sans-Mono', monospace";
 
-function StatBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      width: 170, height: 76, flexShrink: 0,
-      padding: '12px 10px',
-      background: 'rgba(2,84,105,0.08)',
-      border: '1px solid rgba(109,189,175,0.52)',
-    }}>
-      <div style={{ width: 3, height: 44, background: 'rgba(109,189,175,0.82)', flexShrink: 0 }} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-        <p style={{ fontSize: 10, letterSpacing: '1.8px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>{label}</p>
-        <p style={{ fontSize: 24, letterSpacing: '3px', color: 'rgba(109,189,175,0.96)', lineHeight: '31px' }}>{value}</p>
-      </div>
-    </div>
-  );
-}
+export default function Wave2LoadingOverlay() {
+  const fillRef = useRef<HTMLDivElement>(null);
 
-function ReportRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      fontSize: 9, lineHeight: '14px', height: 14,
-      borderBottom: '1px solid rgba(109,189,175,0.1)',
-    }}>
-      <span style={{ color: 'rgba(109,189,175,0.52)', letterSpacing: '1.2px' }}>{label}</span>
-      <span style={{ color: 'rgba(109,189,175,0.9)', letterSpacing: '1.5px', whiteSpace: 'nowrap' }}>{value}</span>
-    </div>
-  );
-}
+  useEffect(() => {
+    let progress = 0;
+    let rafId = 0;
 
-export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }: Props) {
-  const isWave2 = wave === 2;
+    const animate = () => {
+      // Asymptotically approach 90% — never quite arrives, giving a natural "loading" feel
+      progress += (0.9 - progress) * 0.012;
+      if (fillRef.current) fillRef.current.style.width = `${progress * 100}%`;
+      rafId = requestAnimationFrame(animate);
+    };
+
+    rafId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
+
   return (
     <div style={{
       position: 'absolute', inset: 0,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: font,
     }}>
-
       <MenuFrame>
 
-        {/* Eyebrow — h:36, p:10, gap:14 */}
+        {/* Eyebrow */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 14, height: 36,
           padding: 10,
@@ -63,7 +40,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
         }}>
           <div style={{ width: 3, alignSelf: 'stretch', background: 'rgba(109,189,175,0.9)', flexShrink: 0 }} />
           <p style={{ flex: 1, fontSize: 9, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>
-            {isWave2 ? 'OBJECTIVE COMPLETE / WAVE 02' : 'OBJECTIVE COMPLETE / WAVE 01'}
+            WAVE 02 / ASTEROID BELT
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'stretch', justifyContent: 'space-between', width: 3, flexShrink: 0 }}>
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.75)' }} />
@@ -71,7 +48,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
           </div>
         </div>
 
-        {/* Title Main — h:81, px:10 */}
+        {/* Title */}
         <div style={{
           marginTop: 13,
           display: 'flex', alignItems: 'center', gap: 10, height: 81,
@@ -85,7 +62,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.9)' }} />
           </div>
           <p style={{ flex: 1, fontSize: 28, letterSpacing: '5px', color: '#6dbdaf', lineHeight: '44px' }}>
-            {isWave2 ? 'BELT CLEAR' : 'WAVE CLEAR'}
+            ASTEROID BELT
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'stretch', justifyContent: 'space-between', padding: '10px 0', width: 3, flexShrink: 0 }}>
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.75)' }} />
@@ -93,7 +70,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
           </div>
         </div>
 
-        {/* Subtitle — h:44, p:10 */}
+        {/* Subtitle */}
         <div style={{
           marginTop: 16,
           display: 'flex', alignItems: 'center', gap: 10, height: 44,
@@ -106,7 +83,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.9)' }} />
           </div>
           <p style={{ flex: 1, fontSize: 11, letterSpacing: '1.6px', color: 'rgba(109,189,175,0.64)', lineHeight: '15px' }}>
-            {isWave2 ? 'PLANETARY APPROACH LOCKED' : 'APPROACH CORRIDOR SECURED'}
+            PLOTTING FLIGHT CORRIDOR — STAND BY
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'stretch', justifyContent: 'space-between', width: 3, flexShrink: 0 }}>
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.75)' }} />
@@ -114,7 +91,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
           </div>
         </div>
 
-        {/* Rule — h:5 */}
+        {/* Rule */}
         <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 5 }}>
           <div style={{ position: 'relative', width: 88, height: 5 }}>
             <div style={{ position: 'absolute', left: 0, top: 0, width: 44, height: 5, background: 'rgba(109,189,175,0.82)' }} />
@@ -127,46 +104,29 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
           </div>
         </div>
 
-        {/* Stat row — 16px gap from rule */}
-        <div style={{ marginTop: 16, display: 'flex', gap: 22 }}>
-          <StatBox label="HULL"     value={String(hull).padStart(2, '0')} />
-          <StatBox label="SHIELDS"  value={String(shields).padStart(2, '0')} />
-          <StatBox label="HOSTILES" value="00" />
-        </div>
-
-        {/* Wave report — 16px gap from stats */}
+        {/* Loading bar panel */}
         <div style={{
           marginTop: 16,
+          padding: '20px 23px',
           background: 'rgba(2,84,105,0.07)',
           border: '1px solid rgba(109,189,175,0.45)',
-          padding: '20px 23px',
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
-          <p style={{ fontSize: 10, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>
-            {isWave2 ? 'RUN REPORT' : 'WAVE REPORT'}
+          <p style={{ fontSize: 9, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>
+            SCANNING SECTOR
           </p>
-          <ReportRow label="HOSTILES ELIMINATED" value={`${kills} / 05`} />
-          <ReportRow label="HULL INTEGRITY"       value={String(hull)} />
-          <ReportRow label="STATUS"               value={isWave2 ? 'APPROACH LOCKED' : 'SECURE'} />
+          {/* Track */}
+          <div style={{
+            width: '100%', height: 8,
+            background: 'rgba(109,189,175,0.08)',
+            border: '1px solid rgba(109,189,175,0.35)',
+          }}>
+            <div ref={fillRef} style={{
+              height: '100%', width: '0%',
+              background: 'rgba(109,189,175,0.85)',
+            }} />
+          </div>
         </div>
-
-        {/* Continue button — 54px gap from report */}
-        <button
-          onClick={onContinue}
-          style={{
-            marginTop: 54,
-            display: 'flex', alignItems: 'center', gap: 10,
-            width: '100%', height: 64, padding: 10,
-            background: 'rgba(2,84,105,0.10)',
-            border: '1px solid rgba(109,189,175,0.78)',
-            cursor: 'pointer', fontFamily: font,
-          }}
-        >
-          <div style={{ width: 3, alignSelf: 'stretch', background: 'rgba(109,189,175,0.95)', flexShrink: 0 }} />
-          <span style={{ fontSize: 15, letterSpacing: '4px', color: '#6dbdaf', lineHeight: '19px' }}>
-            {isWave2 ? 'RETURN TO MENU' : 'CONTINUE'}
-          </span>
-        </button>
 
       </MenuFrame>
     </div>

@@ -58,7 +58,9 @@ class TerrainChunk {
 
     this._pointsGeometry = new BufferGeometry();
     const attr = getCachedGeometryAttributes(this._resolution);
-    this._pointsGeometry.setIndex(new BufferAttribute(attr.indices, 1));
+    // No index on the points geometry — THREE.Points uses drawArrays (one point per vertex).
+    // Setting the triangle index would cause drawElements, duplicating inner vertices 6×
+    // and edge vertices 3× which creates a visible density band at LOD seams.
     this._pointsGeometry.setAttribute('uv', new Float32BufferAttribute(attr.uvs, 2));
     this._pointsGeometry.attributes.uv.needsUpdate = true;
 
@@ -95,7 +97,9 @@ class TerrainChunk {
   }
 
   attachToGroup() {
-    this._params.group.add(this._plane);
+    if (!this._materialOverrides?.hideFill) {
+      this._params.group.add(this._plane);
+    }
     this._params.group.add(this._points);
   }
 

@@ -15,6 +15,7 @@ export interface AsteroidConfigData {
   featuresFreq: number;
   featuresSharpness: number;
   fineDispFraction: number;
+  maxExtraPasses?: number;
   radius: number;
   ridgeWeight: number;
   rimVariation: number;

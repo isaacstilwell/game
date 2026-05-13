@@ -53,8 +53,11 @@ export function generateHeightMap(
   config: AsteroidConfigData,
   returnType = 'bitmap'
 ): any {
-  const extraPasses = getExtraPasses(chunkSize, chunkResolution);
-  const extraPassesMax = getExtraPasses(getMinChunkSize(config.radius) / (2 * config.radius), chunkResolution) - 1;
+  // If maxExtraPasses is set, use it as a fixed value for all LOD levels so every chunk
+  // evaluates the same octave count — prevents height mismatches at LOD boundaries.
+  const fixed = config.maxExtraPasses;
+  const extraPasses = fixed !== undefined ? fixed : getExtraPasses(chunkSize, chunkResolution);
+  const extraPassesMax = fixed !== undefined ? fixed : getExtraPasses(getMinChunkSize(config.radius) / (2 * config.radius), chunkResolution) - 1;
   const material = new ShaderMaterial({
     fragmentShader: (edgeStrides.N === 1 && edgeStrides.S === 1 && edgeStrides.E === 1 && edgeStrides.W === 1)
       ? heightShader

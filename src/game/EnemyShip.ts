@@ -20,7 +20,7 @@ function makeColoredSeg(pts: number[], cols: number[], density = 1.0) {
 }
 
 // ── flanker (delta-wing, yellow) ──────────────────────────────────────────────
-function buildFlankerGeometry(): THREE.BufferGeometry {
+export function buildFlankerGeometry(): THREE.BufferGeometry {
   const pts: number[] = [], cols: number[] = [];
   const { cseg, setColor } = makeColoredSeg(pts, cols, 0.65);
   setColor(1, 0.65, 0);
@@ -71,7 +71,7 @@ function buildFlankerGeometry(): THREE.BufferGeometry {
   return geo;
 }
 
-function buildFlankerFillGeos(): THREE.BufferGeometry[] {
+export function buildFlankerFillGeos(): THREE.BufferGeometry[] {
   const geos: THREE.BufferGeometry[] = [];
 
   const wingGeo = new THREE.BufferGeometry();

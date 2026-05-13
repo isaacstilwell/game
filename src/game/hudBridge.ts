@@ -1,10 +1,13 @@
 type HudEvent =
-  | { type: 'hp-update';     value: number }
-  | { type: 'shield-update'; value: number }
-  | { type: 'enemy-count';   value: number }
-  | { type: 'kill-count';    value: number }
-  | { type: 'wave-clear';    kills: number; escaped: number }
-  | { type: 'player-dead';   kills: number };
+  | { type: 'hp-update';       value: number }
+  | { type: 'shield-update';   value: number }
+  | { type: 'enemy-count';     value: number }
+  | { type: 'kill-count';      value: number }
+  | { type: 'wave-clear';      kills: number; escaped: number }
+  | { type: 'asteroid-clear';  kills: number }
+  | { type: 'player-dead';     kills: number }
+  | { type: 'wave2-progress';  loaded: number; total: number }
+  | { type: 'wave2-ready' };
 
 type Listener = (event: HudEvent) => void;
 
