@@ -205,8 +205,8 @@ export class TerrainChunkManager {
     this._chunks = newChunks;
   }
 
-  Update() {
-    const surfaceDist = this._params.camera.position.length() - _PLANET_RADIUS;
+  Update(displaySurfaceDist?: number) {
+    const surfaceDist = displaySurfaceDist ?? (this._params.camera.position.length() - _PLANET_RADIUS);
     const baseSize = Math.max(0.04, surfaceDist * 0.003 * (1.25 / _LOD_MULTIPLIER));
     for (const [resolution, mat] of this._materials) {
       mat.size = Math.min(5, baseSize * (_MIN_CELL_RESOLUTION / resolution));

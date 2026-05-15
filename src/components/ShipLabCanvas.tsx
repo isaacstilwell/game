@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { EnemyType } from '@/game/EnemyShip';
+import { spawnExplosion, type ExplosionHandle } from '@/game/labExplosion';
 
 interface Props {
   type: EnemyType;
@@ -487,8 +488,11 @@ function buildPusherFillMeshes(mat: THREE.Material): THREE.Mesh[] {
 
 export default function ShipLabCanvas({ type }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [exploded, setExploded] = useState(false);
+  const actionsRef = useRef<{ explode: () => void; reset: () => void } | null>(null);
 
   useEffect(() => {
+    setExploded(false);
     const container = containerRef.current;
     if (!container) return;
 
@@ -516,11 +520,7 @@ export default function ShipLabCanvas({ type }: Props) {
       size: 0.1,
       sizeAttenuation: true,
     });
-    const points = new THREE.Points(geo, mat);
-    if (type === 'pusher') points.rotation.y = Math.PI;
-    scene.add(points);
 
-    // solid black fill bodies — polygon offset pushes them behind the point cloud
     const fillMat = new THREE.MeshBasicMaterial({
       color: 0x000000,
       side: THREE.DoubleSide,
@@ -528,13 +528,38 @@ export default function ShipLabCanvas({ type }: Props) {
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1,
     });
+
+    const objectGroup = new THREE.Group();
+    if (type === 'pusher') objectGroup.rotation.y = Math.PI;
+    scene.add(objectGroup);
+
+    const points = new THREE.Points(geo, mat);
+    objectGroup.add(points);
+
     const fillMeshes = type === 'pusher' ? buildPusherFillMeshes(fillMat) : buildFlankerFillMeshes(fillMat);
-    fillMeshes.forEach(m => {
-      if (type === 'pusher') m.rotation.y = Math.PI;
-      scene.add(m);
-    });
+    fillMeshes.forEach(m => objectGroup.add(m));
 
     let rafId: number;
+    let currentExplosion: ExplosionHandle | null = null;
+
+    const shipColor = type === 'pusher'
+      ? { r: 1, g: 0, b: 0 }
+      : { r: 1, g: 0.65, b: 0 };
+
+    actionsRef.current = {
+      explode() {
+        objectGroup.visible = false;
+        currentExplosion?.dispose();
+        currentExplosion = spawnExplosion(scene, new THREE.Vector3(0, 0, 0), shipColor);
+        setExploded(true);
+      },
+      reset() {
+        currentExplosion?.dispose();
+        currentExplosion = null;
+        objectGroup.visible = true;
+        setExploded(false);
+      },
+    };
 
     const onResize = () => {
       camera.aspect = container.clientWidth / container.clientHeight;
@@ -546,11 +571,14 @@ export default function ShipLabCanvas({ type }: Props) {
     const animate = () => {
       rafId = requestAnimationFrame(animate);
       controls.update();
+      if (currentExplosion && !currentExplosion.tick()) currentExplosion = null;
       renderer.render(scene, camera);
     };
     animate();
 
     return () => {
+      actionsRef.current = null;
+      currentExplosion?.dispose();
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', onResize);
       controls.dispose();
@@ -563,5 +591,26 @@ export default function ShipLabCanvas({ type }: Props) {
     };
   }, [type]);
 
-  return <div ref={containerRef} className="absolute inset-0" />;
+  return (
+    <div className="absolute inset-0">
+      <div ref={containerRef} className="absolute inset-0" />
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2">
+        {!exploded ? (
+          <button
+            onClick={() => actionsRef.current?.explode()}
+            className="font-mono text-xs text-white/70 border border-white/20 bg-white/5 px-4 py-1.5 hover:bg-white/10 cursor-pointer tracking-widest"
+          >
+            EXPLODE
+          </button>
+        ) : (
+          <button
+            onClick={() => actionsRef.current?.reset()}
+            className="font-mono text-xs text-white/70 border border-white/20 bg-white/5 px-4 py-1.5 hover:bg-white/10 cursor-pointer tracking-widest"
+          >
+            PUT BACK
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }

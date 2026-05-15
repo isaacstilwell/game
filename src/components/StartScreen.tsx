@@ -1,18 +1,38 @@
 'use client';
 
 import MenuFrame from './MenuFrame';
+import type { Difficulty } from '@/game/difficulty';
 
 interface Props {
-  onStart: () => void;
+  onStart: (difficulty: Difficulty) => void;
 }
 
 const font = "'UAV-OSD-Sans-Mono', monospace";
+
+function DifficultyBtn({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1, height: 64, padding: '10px 10px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        background: 'rgba(2,84,105,0.08)',
+        border: '1px solid rgba(109,189,175,0.52)',
+        cursor: 'pointer', fontFamily: font,
+        textAlign: 'left',
+      }}
+    >
+      <div style={{ width: 3, alignSelf: 'stretch', background: 'rgba(109,189,175,0.82)', flexShrink: 0 }} />
+      <span style={{ fontSize: 15, letterSpacing: '3px', color: '#6dbdaf', lineHeight: '19px' }}>{label}</span>
+    </button>
+  );
+}
 
 function StatBox({ label, value }: { label: string; value: string }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10,
-      width: 170, height: 76, flexShrink: 0,
+      flex: 1, height: 76,
       padding: '12px 10px',
       background: 'rgba(2,84,105,0.08)',
       border: '1px solid rgba(109,189,175,0.52)',
@@ -112,9 +132,8 @@ export default function StartScreen({ onStart }: Props) {
         {/* Two stat rows — 16px gap from rule, rows 16px apart */}
         <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', gap: 22 }}>
-            <StatBox label="HULL"     value="100" />
-            <StatBox label="SHIELDS"  value="50" />
-            <StatBox label="HOSTILES" value="05" />
+            <StatBox label="HULL"    value="100" />
+            <StatBox label="SHIELDS" value="50" />
           </div>
           <div style={{ display: 'flex', gap: 22 }}>
             <StatBox label="STRAFE" value="A/D" />
@@ -123,21 +142,17 @@ export default function StartScreen({ onStart }: Props) {
           </div>
         </div>
 
-        {/* START MISSION — 74px gap from stats */}
-        <button
-          onClick={onStart}
-          style={{
-            marginTop: 74,
-            display: 'flex', alignItems: 'center', gap: 10,
-            width: '100%', height: 64, padding: 10,
-            background: 'rgba(2,84,105,0.10)',
-            border: '1px solid rgba(109,189,175,0.78)',
-            cursor: 'pointer', fontFamily: font,
-          }}
-        >
-          <div style={{ width: 3, alignSelf: 'stretch', background: 'rgba(109,189,175,0.95)', flexShrink: 0 }} />
-          <span style={{ fontSize: 15, letterSpacing: '4px', color: '#6dbdaf', lineHeight: '19px' }}>START MISSION</span>
-        </button>
+        {/* DIFFICULTY SELECT — 74px gap from stats */}
+        <div style={{ marginTop: 74 }}>
+          <p style={{ fontSize: 9, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px', marginBottom: 12 }}>
+            SELECT DIFFICULTY
+          </p>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <DifficultyBtn label="EASY"   onClick={() => onStart('easy')} />
+            <DifficultyBtn label="MEDIUM" onClick={() => onStart('medium')} />
+            <DifficultyBtn label="HARD"   onClick={() => onStart('hard')} />
+          </div>
+        </div>
 
       </MenuFrame>
     </div>

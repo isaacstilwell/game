@@ -7,7 +7,7 @@ interface Props {
   shields: number;
   kills: number;
   onContinue: () => void;
-  wave?: 1 | 2;
+  wave?: 1 | 2 | 3;
 }
 
 const font = "'UAV-OSD-Sans-Mono', monospace";
@@ -45,6 +45,7 @@ function ReportRow({ label, value }: { label: string; value: string }) {
 
 export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }: Props) {
   const isWave2 = wave === 2;
+  const isWave3 = wave === 3;
   return (
     <div style={{
       position: 'absolute', inset: 0,
@@ -63,7 +64,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
         }}>
           <div style={{ width: 3, alignSelf: 'stretch', background: 'rgba(109,189,175,0.9)', flexShrink: 0 }} />
           <p style={{ flex: 1, fontSize: 9, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>
-            {isWave2 ? 'OBJECTIVE COMPLETE / WAVE 02' : 'OBJECTIVE COMPLETE / WAVE 01'}
+            {isWave3 ? 'OBJECTIVE COMPLETE / WAVE 03' : isWave2 ? 'OBJECTIVE COMPLETE / WAVE 02' : 'OBJECTIVE COMPLETE / WAVE 01'}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'stretch', justifyContent: 'space-between', width: 3, flexShrink: 0 }}>
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.75)' }} />
@@ -85,7 +86,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.9)' }} />
           </div>
           <p style={{ flex: 1, fontSize: 28, letterSpacing: '5px', color: '#6dbdaf', lineHeight: '44px' }}>
-            {isWave2 ? 'BELT CLEAR' : 'WAVE CLEAR'}
+            {isWave3 ? 'TOUCHDOWN' : isWave2 ? 'BELT CLEAR' : 'WAVE CLEAR'}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'stretch', justifyContent: 'space-between', padding: '10px 0', width: 3, flexShrink: 0 }}>
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.75)' }} />
@@ -106,7 +107,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.9)' }} />
           </div>
           <p style={{ flex: 1, fontSize: 11, letterSpacing: '1.6px', color: 'rgba(109,189,175,0.64)', lineHeight: '15px' }}>
-            {isWave2 ? 'PLANETARY APPROACH LOCKED' : 'APPROACH CORRIDOR SECURED'}
+            {isWave3 ? 'SURFACE SECURED' : isWave2 ? 'PLANETARY APPROACH LOCKED' : 'APPROACH CORRIDOR SECURED'}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'stretch', justifyContent: 'space-between', width: 3, flexShrink: 0 }}>
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.75)' }} />
@@ -129,9 +130,9 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
 
         {/* Stat row — 16px gap from rule */}
         <div style={{ marginTop: 16, display: 'flex', gap: 22 }}>
-          <StatBox label="HULL"     value={String(hull).padStart(2, '0')} />
-          <StatBox label="SHIELDS"  value={String(shields).padStart(2, '0')} />
-          <StatBox label="HOSTILES" value="00" />
+          <StatBox label="HULL"      value={String(hull).padStart(2, '0')} />
+          <StatBox label="SHIELDS"   value={String(shields).padStart(2, '0')} />
+          <StatBox label="ELIMINATED" value={String(kills).padStart(2, '0')} />
         </div>
 
         {/* Wave report — 16px gap from stats */}
@@ -143,11 +144,11 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <p style={{ fontSize: 10, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>
-            {isWave2 ? 'RUN REPORT' : 'WAVE REPORT'}
+            {isWave3 ? 'RUN REPORT' : isWave2 ? 'RUN REPORT' : 'WAVE REPORT'}
           </p>
-          <ReportRow label="HOSTILES ELIMINATED" value={`${kills} / 05`} />
+          <ReportRow label="HOSTILES ELIMINATED" value={String(kills)} />
           <ReportRow label="HULL INTEGRITY"       value={String(hull)} />
-          <ReportRow label="STATUS"               value={isWave2 ? 'APPROACH LOCKED' : 'SECURE'} />
+          <ReportRow label="STATUS"               value={isWave3 ? 'TOUCHDOWN' : isWave2 ? 'APPROACH LOCKED' : 'SECURE'} />
         </div>
 
         {/* Continue button — 54px gap from report */}
@@ -164,7 +165,7 @@ export default function WinScreen({ hull, shields, kills, onContinue, wave = 1 }
         >
           <div style={{ width: 3, alignSelf: 'stretch', background: 'rgba(109,189,175,0.95)', flexShrink: 0 }} />
           <span style={{ fontSize: 15, letterSpacing: '4px', color: '#6dbdaf', lineHeight: '19px' }}>
-            {isWave2 ? 'RETURN TO MENU' : 'CONTINUE'}
+            {isWave3 ? 'RETURN TO MENU' : isWave2 ? 'BEGIN LANDING APPROACH' : 'CONTINUE'}
           </span>
         </button>
 

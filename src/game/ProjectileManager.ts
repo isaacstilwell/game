@@ -7,9 +7,9 @@ interface Bullet {
   isPlayer: boolean;
 }
 
-const PLAYER_GEO = new THREE.SphereGeometry(0.75, 6, 6);
+const PLAYER_GEO = new THREE.BoxGeometry(1.0, 1.0, 1.0);
 const PLAYER_MAT = new THREE.MeshBasicMaterial({ color: 0x6dbdaf });
-const ENEMY_GEO  = new THREE.SphereGeometry(0.65, 6, 6);
+const ENEMY_GEO  = new THREE.BoxGeometry(0.9, 0.9, 0.9);
 const ENEMY_MAT  = new THREE.MeshBasicMaterial({ color: 0xff4444 });
 
 const PLAYER_SPEED = 5;
@@ -27,6 +27,7 @@ export class ProjectileManager {
   spawnPlayerBullet(origin: THREE.Vector3, dir: THREE.Vector3): void {
     const mesh = new THREE.Mesh(PLAYER_GEO, PLAYER_MAT);
     mesh.position.copy(origin);
+    mesh.rotation.z = Math.PI / 4;
     this.scene.add(mesh);
     this.bullets.push({
       mesh,
@@ -39,6 +40,7 @@ export class ProjectileManager {
     const dir = new THREE.Vector3().subVectors(playerPos, origin).normalize();
     const mesh = new THREE.Mesh(ENEMY_GEO, ENEMY_MAT);
     mesh.position.copy(origin);
+    mesh.rotation.z = Math.PI / 4;
     this.scene.add(mesh);
     this.bullets.push({
       mesh,

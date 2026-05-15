@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 const _PLANET_RADIUS = 350;
-const _MIN_CELL_SIZE = 22;
+const _MIN_CELL_SIZE = 44;
 const _LOD_MULTIPLIER = 3.0;
 
 class QuadTree {

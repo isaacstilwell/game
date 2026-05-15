@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildFlankerGeometry, buildFlankerFillGeos } from './EnemyShip';
+import type { Difficulty } from './difficulty';
 
 // HUD teal — matches the UI color palette
 const PLAYER_COLOR = 0x6DBDAF;
@@ -24,9 +25,9 @@ const ANG_BASE   = 0.032;
 // Player movement through belt-local space
 const APPROACH_START_Y = -(EXTENDED_OUTER + 20);
 const APPROACH_START_Z = 0;
-const APPROACH_SPEED   = 0.25;
-const STRAFE_SPEED     = 0.9;
-const STRAFE_MAX       = 120;
+const APPROACH_SPEEDS: Record<Difficulty, number> = { easy: 0.25, medium: 0.45, hard: 0.65 };
+const STRAFE_SPEED     = 0.45;
+const STRAFE_MAX       = 70;
 const PLAYER_RADIUS    = 0.8;
 const HIT_COOLDOWN     = 90;
 
@@ -41,12 +42,38 @@ function angleDist(a: number, b: number): number {
 
 function randRadius(): number {
   const r = Math.random();
-  if (r < 0.90)  return 1;
-  if (r < 0.995) return 2 + Math.floor(Math.random() * 2); // 9.5% → 2–3
-  return 4 + Math.floor(Math.random() * 2);                 // 0.5% → 4–5
+  if (r < 0.72)  return 2 + Math.floor(Math.random() * 2); // 72% → 2–3
+  if (r < 0.95)  return 4 + Math.floor(Math.random() * 2); // 23% → 4–5
+  return 6 + Math.floor(Math.random() * 3);                 //  5% → 6–8
 }
 
-interface BeltPos { x: number; y: number; z: number; radius: number; }
+function hpForRadius(r: number): number {
+  if (r <= 3) return 2;
+  if (r <= 5) return 6;
+  if (r <= 7) return 16;
+  return 30;
+}
+
+// Player bullets in belt-local space
+const BELT_BULLET_GEO      = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+const BELT_BULLET_MAT      = new THREE.MeshBasicMaterial({ color: 0x6dbdaf });
+const BELT_BULLET_SPEED    = 8;
+const BELT_BULLET_HIT_MARGIN = 1.5;
+const BELT_BULLET_CULL_AHEAD = 300;
+
+const HIT_FLASH_DURATION = 18; // frames — quick fade-in / fade-out
+
+function setFillColor(group: THREE.Group, r: number, g: number, b: number) {
+  group.traverse(child => {
+    if (child instanceof THREE.Mesh) {
+      (child.material as THREE.MeshBasicMaterial).color.setRGB(r, g, b);
+    }
+  });
+}
+
+interface BeltBullet { pos: THREE.Vector3; vel: THREE.Vector3; mesh: THREE.Mesh; }
+interface HitFlash  { group: THREE.Group; frame: number; }
+interface BeltPos { x: number; y: number; z: number; radius: number; hp: number; }
 
 export class Wave2DodgeManager {
   private positions: BeltPos[] = [];
@@ -59,8 +86,11 @@ export class Wave2DodgeManager {
   private beltX = 0;
   private beltY = APPROACH_START_Y;
   private readonly beltZ = APPROACH_START_Z;
+  private approachSpeed = 0.25;
   private hitCooldown = 0;
   private disposed = false;
+  private bullets: BeltBullet[] = [];
+  private hitFlashes: HitFlash[] = [];
 
   isReady = false;
   get count(): number { return this.positions.length; }
@@ -69,7 +99,9 @@ export class Wave2DodgeManager {
     private planetSystem: THREE.Group,
     private onReady: () => void,
     private onProgress?: (loaded: number, total: number) => void,
+    difficulty: Difficulty = 'medium',
   ) {
+    this.approachSpeed = APPROACH_SPEEDS[difficulty];
     this.playerShip = this.buildPlayerShip();
     this.generatePositions();
     this.buildAsteroids().catch(console.error);
@@ -133,11 +165,13 @@ export class Wave2DodgeManager {
         const angle = (i / pointCount) * Math.PI * 2;
         const radialNoise = (Math.random() - 0.5) * 3.0;
         const r = radius + radialNoise;
+        const aRadius = randRadius();
         this.positions.push({
           x: Math.cos(angle) * r,
           y: Math.sin(angle) * r,
           z: gaussianZ(),
-          radius: randRadius(),
+          radius: aRadius,
+          hp: hpForRadius(aRadius),
         });
       }
 
@@ -147,7 +181,8 @@ export class Wave2DodgeManager {
     while (this.positions.length < MIN_ASTEROIDS) {
       const angle = SLICE_CENTER - SLICE_HALF + Math.random() * SLICE_HALF * 2;
       const r = BELT_INNER + Math.random() * (EXTENDED_OUTER - BELT_INNER);
-      this.positions.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r, z: gaussianZ(), radius: randRadius() });
+      const fRadius = randRadius();
+      this.positions.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r, z: gaussianZ(), radius: fRadius, hp: hpForRadius(fRadius) });
     }
   }
 
@@ -195,8 +230,11 @@ export class Wave2DodgeManager {
     this.onReady();
   }
 
-  tick(strafeDir: number): { damaged: boolean; complete: boolean } {
-    this.beltY += APPROACH_SPEED;
+  tick(strafeDir: number, shoot: boolean, shootDir?: THREE.Vector3): {
+    damaged: boolean; complete: boolean; hitPos: THREE.Vector3 | null; hitRadius: number | null;
+    destroyed: { pos: THREE.Vector3; radius: number }[];
+  } {
+    this.beltY += this.approachSpeed;
     this.beltX = THREE.MathUtils.clamp(
       this.beltX + strafeDir * STRAFE_SPEED,
       -STRAFE_MAX,
@@ -215,7 +253,63 @@ export class Wave2DodgeManager {
       this.updateFns[i](playerPos.clone().sub(g.position));
     }
 
+    // Spawn player bullet (straight forward in +Y)
+    if (shoot) {
+      const mesh = new THREE.Mesh(BELT_BULLET_GEO, BELT_BULLET_MAT);
+      mesh.position.set(this.beltX, this.beltY, this.beltZ);
+      mesh.rotation.z = Math.PI / 4;
+      this.planetSystem.add(mesh);
+      this.bullets.push({
+        pos: new THREE.Vector3(this.beltX, this.beltY, this.beltZ),
+        vel: (shootDir ?? new THREE.Vector3(0, 1, 0)).clone().normalize().multiplyScalar(BELT_BULLET_SPEED),
+        mesh,
+      });
+    }
+
+    // Move bullets and check asteroid hits
+    const destroyed: { pos: THREE.Vector3; radius: number }[] = [];
+    const bulletsToRemove: BeltBullet[] = [];
+    for (const bullet of this.bullets) {
+      bullet.pos.add(bullet.vel);
+      bullet.mesh.position.copy(bullet.pos);
+      if (bullet.pos.y - this.beltY > BELT_BULLET_CULL_AHEAD) {
+        bulletsToRemove.push(bullet);
+        continue;
+      }
+      let hit = false;
+      for (let i = 0; i < this.groups.length; i++) {
+        const gp = this.groups[i].position;
+        if (bullet.pos.distanceTo(gp) < BELT_BULLET_HIT_MARGIN + this.positions[i].radius) {
+          this.positions[i].hp--;
+          if (this.positions[i].hp <= 0) {
+            destroyed.push({ pos: gp.clone(), radius: this.positions[i].radius });
+            this.hitFlashes = this.hitFlashes.filter(f => f.group !== this.groups[i]);
+            this.planetSystem.remove(this.groups[i]);
+            this.groups.splice(i, 1);
+            this.positions.splice(i, 1);
+            this.updateFns.splice(i, 1);
+            this.velocities.splice(i, 1);
+            this.angVels.splice(i, 1);
+          } else {
+            const existing = this.hitFlashes.find(f => f.group === this.groups[i]);
+            if (existing) existing.frame = 0;
+            else this.hitFlashes.push({ group: this.groups[i], frame: 0 });
+          }
+          hit = true;
+          break;
+        }
+      }
+      if (hit) bulletsToRemove.push(bullet);
+    }
+    for (const b of bulletsToRemove) {
+      this.planetSystem.remove(b.mesh);
+      const i = this.bullets.indexOf(b);
+      if (i !== -1) this.bullets.splice(i, 1);
+    }
+
     let damaged = false;
+    let hitPos: THREE.Vector3 | null = null;
+    let hitRadius: number | null = null;
     if (this.hitCooldown > 0) {
       this.hitCooldown--;
     } else {
@@ -225,12 +319,31 @@ export class Wave2DodgeManager {
         if (Math.sqrt(dx * dx + dy * dy + dz * dz) < PLAYER_RADIUS + this.positions[i].radius) {
           this.hitCooldown = HIT_COOLDOWN;
           damaged = true;
+          hitPos    = gp.clone();
+          hitRadius = this.positions[i].radius;
+          this.planetSystem.remove(this.groups[i]);
+          this.groups.splice(i, 1);
+          this.positions.splice(i, 1);
+          this.updateFns.splice(i, 1);
+          this.velocities.splice(i, 1);
+          this.angVels.splice(i, 1);
           break;
         }
       }
     }
 
-    return { damaged, complete: this.beltY > -(BELT_INNER - 50) };
+    this.hitFlashes = this.hitFlashes.filter(flash => {
+      flash.frame++;
+      const intensity = 0.28 * Math.sin(Math.PI * flash.frame / HIT_FLASH_DURATION);
+      setFillColor(flash.group, intensity, 0, 0);
+      if (flash.frame >= HIT_FLASH_DURATION) {
+        setFillColor(flash.group, 0, 0, 0);
+        return false;
+      }
+      return true;
+    });
+
+    return { damaged, complete: this.beltY > -(BELT_INNER - 50), hitPos, hitRadius, destroyed };
   }
 
   getCameraMatrix(): THREE.Matrix4 {
@@ -247,9 +360,12 @@ export class Wave2DodgeManager {
     this.disposed = true;
     this.playerShip.parent?.remove(this.playerShip);
     for (const g of this.groups) g.parent?.remove(g);
+    for (const b of this.bullets) this.planetSystem.remove(b.mesh);
+    for (const f of this.hitFlashes) setFillColor(f.group, 0, 0, 0);
     this.groups = [];
     this.updateFns = [];
     this.velocities = [];
     this.angVels = [];
+    this.bullets = [];
   }
 }

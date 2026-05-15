@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const _FILL_MATERIAL = new THREE.MeshBasicMaterial({ color: 0x000000, depthWrite: false });
+const _FILL_MATERIAL = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
 export interface WorkResult {
   positions: Float32Array;

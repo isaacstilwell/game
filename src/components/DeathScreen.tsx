@@ -127,7 +127,7 @@ export default function DeathScreen({ kills, onRetry }: Props) {
         <div style={{ marginTop: 16, display: 'flex', gap: 22 }}>
           <StatBox label="HULL"     value="00" />
           <StatBox label="SHIELDS"  value="00" />
-          <StatBox label="HOSTILES" value={`${kills.toString().padStart(2, '0')}/05`} />
+          <StatBox label="ELIMINATED" value={kills.toString().padStart(2, '0')} />
         </div>
 
         {/* Wave report — 16px gap from stats */}
@@ -139,7 +139,7 @@ export default function DeathScreen({ kills, onRetry }: Props) {
           display: 'flex', flexDirection: 'column', gap: 12,
         }}>
           <p style={{ fontSize: 10, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>WAVE REPORT</p>
-          <ReportRow label="HOSTILES ELIMINATED" value={`${kills.toString().padStart(2, '0')} / 05`} />
+          <ReportRow label="HOSTILES ELIMINATED" value={String(kills)} />
           <ReportRow label="HULL INTEGRITY"       value="00" />
           <ReportRow label="STATUS"               value="FAILED" />
         </div>

@@ -11,6 +11,8 @@ export default function HUD() {
   const hpValRef      = useRef<HTMLSpanElement>(null);
   const shFillRef     = useRef<HTMLDivElement>(null);
   const shValRef      = useRef<HTMLSpanElement>(null);
+  const ammoFillRef   = useRef<HTMLDivElement>(null);
+  const ammoValRef    = useRef<HTMLSpanElement>(null);
   const hostilesRef   = useRef<HTMLParagraphElement>(null);
   const crosshairRef  = useRef<HTMLDivElement>(null);
 
@@ -23,10 +25,14 @@ export default function HUD() {
       if (shFillRef.current)  shFillRef.current.style.width = `${(value / MAX_SHIELD) * 100}%`;
       if (shValRef.current)   shValRef.current.textContent  = String(value);
     });
-    const offCt = hudBridge.on('enemy-count', ({ value }) => {
+    const offCt = hudBridge.on('kill-count', ({ value }) => {
       if (hostilesRef.current) hostilesRef.current.textContent = String(value).padStart(2, '0');
     });
-    return () => { offHp(); offSh(); offCt(); };
+    const offAm = hudBridge.on('ammo-update', ({ value }) => {
+      if (ammoFillRef.current) ammoFillRef.current.style.width = `${value}%`;
+      if (ammoValRef.current)  ammoValRef.current.textContent  = String(value);
+    });
+    return () => { offHp(); offSh(); offCt(); offAm(); };
   }, []);
 
   useEffect(() => {
@@ -150,7 +156,40 @@ export default function HUD() {
         </div>
       </div>
 
-      {/* Enemy Count — top right */}
+      {/* Ammo Panel — bottom right */}
+      <div
+        className="absolute"
+        style={{ right: 48, bottom: 64, width: 240, height: 64 }}
+      >
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(2,84,105,0.18)',
+          border: '1px solid rgba(109,189,175,0.45)',
+        }} />
+        <p style={{
+          position: 'absolute', left: 14, top: 10,
+          fontSize: 8, letterSpacing: '2px',
+          color: 'rgba(109,189,175,0.6)',
+        }}>AMMO</p>
+
+        <div style={{
+          position: 'absolute', left: 14, top: 28, width: 212, height: 8,
+          background: 'rgba(109,189,175,0.1)',
+          border: '1px solid rgba(109,189,175,0.35)',
+        }} />
+        <div ref={ammoFillRef} style={{
+          position: 'absolute', left: 14, top: 28, width: '100%', maxWidth: 212, height: 8,
+          background: 'rgba(109,189,175,0.85)',
+          transition: 'width 0.05s linear',
+        }} />
+
+        <div style={{ position: 'absolute', left: 14, top: 44, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+          <span ref={ammoValRef} style={{ fontSize: 10, color: 'rgba(109,189,175,0.96)' }}>100</span>
+          <span style={{ fontSize: 8, letterSpacing: '1px', color: 'rgba(109,189,175,0.45)' }}>/ 100</span>
+        </div>
+      </div>
+
+      {/* Eliminations — top right */}
       <div
         className="absolute"
         style={{ right: 48, top: 24, width: 160, height: 64 }}
@@ -164,12 +203,12 @@ export default function HUD() {
           position: 'absolute', left: 0, right: 0, top: 10,
           fontSize: 8, letterSpacing: '2px', textAlign: 'center',
           color: 'rgba(109,189,175,0.6)',
-        }}>HOSTILES</p>
+        }}>ELIMINATIONS</p>
         <p ref={hostilesRef} style={{
           position: 'absolute', left: 0, right: 0, top: 24,
           fontSize: 26, letterSpacing: '6px', textAlign: 'center',
           color: 'rgba(109,189,175,0.96)',
-        }}>05</p>
+        }}>00</p>
       </div>
     </div>
   );

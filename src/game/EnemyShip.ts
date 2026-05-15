@@ -264,9 +264,15 @@ const FILL_MAT    = new THREE.MeshBasicMaterial({
 });
 
 // ── enemy constants ───────────────────────────────────────────────────────────
-const FLANKER_FORWARD_SPEED = 0.12;
-const FLANKER_ORBIT_SPEED   = 0.006;
-const FLANKER_ORBIT_RADIUS  = 40;
+const FLANKER_FORWARD_SPEED  = 0.12;
+const FLANKER_RETREAT_SPEED  = 2.0;
+const FLANKER_ORBIT_SPEED    = 0.006;
+const FLANKER_ORBIT_RADIUS   = 40;
+const FLANKER_KEEP_DIST      = 80;   // turn around this far before the player
+const FLANKER_RESET_DIST     = 200;  // retreat this far before approaching again
+
+const PUSHER_STOP_DIST    = 40;   // halt this far from the player
+const PUSHER_RETREAT_DIST = 150;  // back up this far before going idle
 
 export class EnemyShip {
   readonly mesh: THREE.Group;
@@ -275,11 +281,19 @@ export class EnemyShip {
   private readonly FIRE_INTERVAL: number;
 
   // pusher state
-  private retreating = false;
+  private chargeState: 'idle' | 'charging' | 'retreating' = 'idle';
+  onCycleComplete: (() => void) | null = null;
+
+  get isIdle(): boolean { return this.chargeState === 'idle'; }
+
+  startCharge(): void {
+    if (this.chargeState === 'idle') this.chargeState = 'charging';
+  }
 
   // flanker state
-  private anchor     = new THREE.Vector3();
-  private orbitAngle = 0;
+  private anchor            = new THREE.Vector3();
+  private orbitAngle        = 0;
+  private flankerRetreating = false;
 
   constructor(scene: THREE.Scene, type: EnemyType, spawnX: number, spawnY: number) {
     this.type = type;
@@ -313,30 +327,50 @@ export class EnemyShip {
     }
 
     this.fireTimer++;
-    const wantsToFire = this.fireTimer >= this.FIRE_INTERVAL;
-    if (wantsToFire) this.fireTimer = 0;
+    const inFront = this.mesh.position.z < playerPos.z;
+    const wantsToFire = inFront && this.fireTimer >= this.FIRE_INTERVAL;
+    if (this.fireTimer >= this.FIRE_INTERVAL) this.fireTimer = 0;
     return { wantsToFire };
   }
 
   private tickPusher(playerPos: THREE.Vector3): void {
     const pos = this.mesh.position;
 
-    if (!this.retreating && pos.z > -60) this.retreating = true;
-
-    if (this.retreating) {
-      pos.z -= 0.4;
-      if (pos.z <= -150) this.retreating = false;
-    } else {
-      const dir = new THREE.Vector3().subVectors(playerPos, pos).normalize();
-      pos.addScaledVector(dir, 0.8);
+    switch (this.chargeState) {
+      case 'idle':
+        return;
+      case 'charging': {
+        if (pos.distanceTo(playerPos) <= PUSHER_STOP_DIST) {
+          this.chargeState = 'retreating';
+        } else {
+          const dir = new THREE.Vector3().subVectors(playerPos, pos).normalize();
+          pos.addScaledVector(dir, 0.8);
+        }
+        break;
+      }
+      case 'retreating': {
+        const retreatSpeed = pos.z > playerPos.z ? 4.0 : 0.4;
+        pos.z -= retreatSpeed;
+        if (pos.z <= playerPos.z - PUSHER_RETREAT_DIST) {
+          this.chargeState = 'idle';
+          this.onCycleComplete?.();
+        }
+        break;
+      }
     }
   }
 
   private tickFlanker(playerPos: THREE.Vector3): void {
-    this.anchor.z += FLANKER_FORWARD_SPEED;
-    if (this.anchor.z > -60) {
-      this.anchor.set(playerPos.x, playerPos.y, -200);
-      this.orbitAngle = Math.random() * Math.PI * 2;
+    if (this.flankerRetreating) {
+      this.anchor.z -= FLANKER_RETREAT_SPEED;
+      if (this.anchor.z <= playerPos.z - FLANKER_RESET_DIST) {
+        this.flankerRetreating = false;
+      }
+    } else {
+      this.anchor.z += FLANKER_FORWARD_SPEED;
+      if (this.anchor.z >= playerPos.z - FLANKER_KEEP_DIST) {
+        this.flankerRetreating = true;
+      }
     }
 
     this.orbitAngle += FLANKER_ORBIT_SPEED;

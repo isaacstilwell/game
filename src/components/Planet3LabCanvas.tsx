@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { LANDING_THETA, buildLandingZone, updateLandingZone, type LandingZone } from '@/game/landingZone';
 
 const PLANET_RADIUS = 350;
 const EYE_HEIGHT = 7;
@@ -23,10 +24,17 @@ const MOUNT_TARGET = new THREE.Vector3(0, 334, 104);
 const HOODOO_CAM = new THREE.Vector3(220, 265, 0).normalize().multiplyScalar(PLANET_RADIUS + EYE_HEIGHT);
 const HOODOO_TARGET = new THREE.Vector3(247, 248, 0);
 
+// Landing zone: theta=LANDING_THETA in YZ plane; camera at theta≈0.36 looking forward toward the zone
+const LAND_SPHERE = new THREE.Vector3(0, -PLANET_RADIUS * Math.cos(LANDING_THETA), PLANET_RADIUS * Math.sin(LANDING_THETA));
+const LAND_CAM    = new THREE.Vector3(0, -PLANET_RADIUS * Math.cos(0.36), PLANET_RADIUS * Math.sin(0.36))
+                      .normalize().multiplyScalar(PLANET_RADIUS + EYE_HEIGHT + 4);
+const LAND_TARGET = LAND_SPHERE.clone();
+
 const LANDMARKS = {
-  CANYON:    { cam: CANYON_CAM,  target: CANYON_TARGET  },
-  MOUNTAINS: { cam: MOUNT_CAM,   target: MOUNT_TARGET   },
-  HOODOOS:   { cam: HOODOO_CAM,  target: HOODOO_TARGET  },
+  CANYON:       { cam: CANYON_CAM,  target: CANYON_TARGET  },
+  MOUNTAINS:    { cam: MOUNT_CAM,   target: MOUNT_TARGET   },
+  HOODOOS:      { cam: HOODOO_CAM,  target: HOODOO_TARGET  },
+  LANDING_ZONE: { cam: LAND_CAM,    target: LAND_TARGET    },
 } as const;
 
 const ORBIT_POS = new THREE.Vector3(612.5, 612.5, 612.5);
@@ -38,6 +46,7 @@ export default function Planet3LabCanvas() {
   const controlsRef = useRef<OrbitControls | null>(null);
   const onSurfaceRef = useRef(false);
   const keysRef = useRef<Set<string>>(new Set());
+  const lzRef = useRef<LandingZone | null>(null);
   const [onSurface, setOnSurface] = useState(false);
 
   const goToLandmark = (pos: THREE.Vector3, target: THREE.Vector3) => {
@@ -132,6 +141,9 @@ export default function Planet3LabCanvas() {
       new AsteroidBelt(beltGroup);
     });
 
+    // Landing zone — LOD-matched to quadtree, updated each frame
+    lzRef.current = buildLandingZone(scene);
+
     // Reusable vectors for surface movement to avoid per-frame allocation
     const _fwd = new THREE.Vector3();
     const _up = new THREE.Vector3();
@@ -167,6 +179,11 @@ export default function Planet3LabCanvas() {
 
       controls.update();
       manager?.Update();
+      if (lzRef.current) {
+        const distToCenter = camera.position.distanceTo(LAND_SPHERE);
+        const surfaceDist  = Math.max(0, camera.position.length() - PLANET_RADIUS);
+        updateLandingZone(lzRef.current, distToCenter, surfaceDist);
+      }
       renderer.render(scene, camera);
     };
     animate();

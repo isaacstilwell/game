@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { spawnExplosion, type ExplosionHandle } from '@/game/labExplosion';
 
 export default function AsteroidLabCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exploded, setExploded] = useState(false);
+  const actionsRef = useRef<{ explode: () => void; reset: () => void } | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -34,11 +37,13 @@ export default function AsteroidLabCanvas() {
     let rafId: number;
     let disposed = false;
     let asteroidUpdate: ((pos: THREE.Vector3) => void) | null = null;
+    let currentExplosion: ExplosionHandle | null = null;
 
     const animate = () => {
       rafId = requestAnimationFrame(animate);
       controls.update();
       if (asteroidUpdate) asteroidUpdate(camera.position);
+      if (currentExplosion && !currentExplosion.tick()) currentExplosion = null;
       renderer.render(scene, camera);
     };
 
@@ -59,6 +64,23 @@ export default function AsteroidLabCanvas() {
       scene.add(group);
       asteroidUpdate = update;
       setLoading(false);
+
+      actionsRef.current = {
+        explode() {
+          group.visible = false;
+          currentExplosion?.dispose();
+          currentExplosion = spawnExplosion(
+            scene, new THREE.Vector3(0, 0, 0), { r: 0.85, g: 0.8, b: 0.7 },
+          );
+          setExploded(true);
+        },
+        reset() {
+          currentExplosion?.dispose();
+          currentExplosion = null;
+          group.visible = true;
+          setExploded(false);
+        },
+      };
     }).catch((err) => {
       console.error('Asteroid load error:', err);
       setError(String(err));
@@ -67,6 +89,8 @@ export default function AsteroidLabCanvas() {
 
     return () => {
       disposed = true;
+      actionsRef.current = null;
+      currentExplosion?.dispose();
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', onResize);
       controls.dispose();
@@ -107,6 +131,33 @@ export default function AsteroidLabCanvas() {
           pointerEvents: 'none',
         }}>
           Error: {error}
+        </div>
+      )}
+      {!loading && !error && (
+        <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)' }}>
+          {!exploded ? (
+            <button
+              onClick={() => actionsRef.current?.explode()}
+              style={{
+                fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.1em',
+                color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.2)', padding: '6px 16px', cursor: 'pointer',
+              }}
+            >
+              EXPLODE
+            </button>
+          ) : (
+            <button
+              onClick={() => actionsRef.current?.reset()}
+              style={{
+                fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.1em',
+                color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.2)', padding: '6px 16px', cursor: 'pointer',
+              }}
+            >
+              PUT BACK
+            </button>
+          )}
         </div>
       )}
     </div>
