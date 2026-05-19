@@ -48,9 +48,9 @@ function randRadius(): number {
 }
 
 function hpForRadius(r: number): number {
-  if (r <= 3) return 2;
-  if (r <= 5) return 6;
-  if (r <= 7) return 16;
+  if (r <= 3) return 6;
+  if (r <= 5) return 16;
+  if (r <= 7) return 30;
   return 30;
 }
 
