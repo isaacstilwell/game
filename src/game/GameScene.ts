@@ -280,7 +280,8 @@ export class GameScene {
       hudBridge.emit({ type: 'ammo-update', value: this.ammo });
     }
 
-    const { playerHit, gunsKilled, flankersKilledPos, complete, crashedOutside } = this.wave3.tick(this.input.getStrafeDir());
+    const { playerHit, gunsKilled, flankersKilledPos, complete, crashedOutside, alignWarning } = this.wave3.tick(this.input.getStrafeDir());
+    hudBridge.emit({ type: 'align-warning', value: alignWarning });
 
     const totalKilled = gunsKilled.length + flankersKilledPos.length;
     if (totalKilled > 0) {

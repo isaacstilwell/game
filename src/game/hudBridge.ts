@@ -9,7 +9,8 @@ type HudEvent =
   | { type: 'wave2-progress';  loaded: number; total: number }
   | { type: 'ammo-update';     value: number }
   | { type: 'wave2-ready' }
-  | { type: 'landing-complete'; kills: number };
+  | { type: 'landing-complete'; kills: number }
+  | { type: 'align-warning';   value: boolean };
 
 type Listener = (event: HudEvent) => void;
 

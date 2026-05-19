@@ -14,6 +14,7 @@ export default function HUD() {
   const ammoFillRef   = useRef<HTMLDivElement>(null);
   const ammoValRef    = useRef<HTMLSpanElement>(null);
   const hostilesRef   = useRef<HTMLParagraphElement>(null);
+  const alignWarnRef  = useRef<HTMLDivElement>(null);
   const crosshairRef  = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +33,10 @@ export default function HUD() {
       if (ammoFillRef.current) ammoFillRef.current.style.width = `${value}%`;
       if (ammoValRef.current)  ammoValRef.current.textContent  = String(value);
     });
-    return () => { offHp(); offSh(); offCt(); offAm(); };
+    const offAw = hudBridge.on('align-warning', ({ value }) => {
+      if (alignWarnRef.current) alignWarnRef.current.style.display = value ? 'block' : 'none';
+    });
+    return () => { offHp(); offSh(); offCt(); offAm(); offAw(); };
   }, []);
 
   useEffect(() => {
@@ -187,6 +191,24 @@ export default function HUD() {
           <span ref={ammoValRef} style={{ fontSize: 10, color: 'rgba(109,189,175,0.96)' }}>100</span>
           <span style={{ fontSize: 8, letterSpacing: '1px', color: 'rgba(109,189,175,0.45)' }}>/ 100</span>
         </div>
+      </div>
+
+      {/* Align warning — top center, wave 3 only */}
+      <div
+        ref={alignWarnRef}
+        className="absolute"
+        style={{
+          left: '50%', top: 24, transform: 'translateX(-50%)',
+          display: 'none',
+          padding: '6px 20px',
+          background: 'rgba(60,0,0,0.55)',
+          border: '1px solid rgba(255,60,60,0.6)',
+          textAlign: 'center',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <p style={{ fontSize: 8, letterSpacing: '3px', color: 'rgba(255,80,80,0.6)', marginBottom: 4 }}>WARNING</p>
+        <p style={{ fontSize: 10, letterSpacing: '2px', color: 'rgba(255,80,80,0.96)' }}>ALIGN WITH LANDING ZONE</p>
       </div>
 
       {/* Eliminations — top right */}

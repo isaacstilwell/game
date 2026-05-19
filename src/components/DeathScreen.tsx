@@ -4,6 +4,7 @@ import MenuFrame from './MenuFrame';
 
 interface Props {
   kills: number;
+  wave: number;
   onRetry: () => void;
 }
 
@@ -40,7 +41,7 @@ function ReportRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function DeathScreen({ kills, onRetry }: Props) {
+export default function DeathScreen({ kills, wave, onRetry }: Props) {
   return (
     <div style={{
       position: 'absolute', inset: 0,
@@ -59,7 +60,7 @@ export default function DeathScreen({ kills, onRetry }: Props) {
         }}>
           <div style={{ width: 3, alignSelf: 'stretch', background: 'rgba(109,189,175,0.9)', flexShrink: 0 }} />
           <p style={{ flex: 1, fontSize: 9, letterSpacing: '2px', color: 'rgba(109,189,175,0.48)', lineHeight: '13px' }}>
-            MISSION FAILURE / WAVE 01
+            MISSION FAILURE / WAVE {String(wave).padStart(2, '0')}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', alignSelf: 'stretch', justifyContent: 'space-between', width: 3, flexShrink: 0 }}>
             <div style={{ width: 3, height: 6, background: 'rgba(109,189,175,0.75)' }} />

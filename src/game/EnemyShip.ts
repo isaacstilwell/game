@@ -306,6 +306,8 @@ export class EnemyShip {
     this.mesh.add(new THREE.Points(geo, ptsMat));
     for (const fg of fillGeos) this.mesh.add(new THREE.Mesh(fg, FILL_MAT));
 
+    if (type === 'pusher') this.mesh.rotation.y = Math.PI;
+
     this.FIRE_INTERVAL = type === 'pusher' ? 360 : 240;
     this.fireTimer = Math.floor(Math.random() * this.FIRE_INTERVAL);
 

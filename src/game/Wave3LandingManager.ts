@@ -254,6 +254,7 @@ export class Wave3LandingManager {
     flankersKilledPos: THREE.Vector3[];
     complete: boolean;
     crashedOutside: boolean;
+    alignWarning: boolean;
   } {
     this.theta += ANGULAR_SPEED;
     this.h      = Math.max(0, this.h - DESCENT_RATE);
@@ -359,7 +360,8 @@ export class Wave3LandingManager {
       crashedOutside  = true;
     }
 
-    return { playerHit, gunsKilled, flankersKilledPos, complete: onGround && inZone, crashedOutside };
+    const alignWarning = this.h <= 10 && !inZone;
+    return { playerHit, gunsKilled, flankersKilledPos, complete: onGround && inZone, crashedOutside, alignWarning };
   }
 
   dispose(): void {

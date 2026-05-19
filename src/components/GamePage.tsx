@@ -15,30 +15,31 @@ const GameCanvas = dynamic(() => import('./GameCanvas'), { ssr: false });
 
 type GameState = 'START' | 'PLAYING' | 'WAVE1_CLEAR' | 'WAVE2_LOADING' | 'WAVE2_DONE' | 'MISSION_COMPLETE' | 'DEATH';
 
-interface RunStats { hp: number; shields: number; kills: number; }
+interface RunStats { hp: number; shields: number; kills: number; wave: number; }
 
 export default function GamePage() {
   const [gameState, setGameState]   = useState<GameState>('START');
-  const [finalStats, setFinalStats] = useState<RunStats>({ hp: 100, shields: 50, kills: 0 });
+  const [finalStats, setFinalStats] = useState<RunStats>({ hp: 100, shields: 50, kills: 0, wave: 1 });
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
 
-  const sceneRef    = useRef<GameScene | null>(null);
-  const hpRef       = useRef(100);
-  const shieldsRef  = useRef(50);
+  const sceneRef       = useRef<GameScene | null>(null);
+  const hpRef          = useRef(100);
+  const shieldsRef     = useRef(50);
+  const currentWaveRef = useRef(1);
 
   useEffect(() => {
     const offHp   = hudBridge.on('hp-update',       ({ value }) => { hpRef.current = value; });
     const offSh   = hudBridge.on('shield-update',   ({ value }) => { shieldsRef.current = value; });
     const offWin  = hudBridge.on('wave-clear',       ({ kills }) => {
-      setFinalStats({ hp: hpRef.current, shields: shieldsRef.current, kills });
+      setFinalStats({ hp: hpRef.current, shields: shieldsRef.current, kills, wave: currentWaveRef.current });
       setGameState('WAVE1_CLEAR');
     });
     const offAst  = hudBridge.on('asteroid-clear',  ({ kills }) => {
-      setFinalStats({ hp: hpRef.current, shields: shieldsRef.current, kills });
+      setFinalStats({ hp: hpRef.current, shields: shieldsRef.current, kills, wave: currentWaveRef.current });
       setGameState('WAVE2_DONE');
     });
     const offLand = hudBridge.on('landing-complete', ({ kills }) => {
-      setFinalStats({ hp: hpRef.current, shields: shieldsRef.current, kills });
+      setFinalStats({ hp: hpRef.current, shields: shieldsRef.current, kills, wave: currentWaveRef.current });
       setGameState('MISSION_COMPLETE');
     });
     const offW2Ready = hudBridge.on('wave2-ready', () => {
@@ -46,7 +47,7 @@ export default function GamePage() {
       setGameState('PLAYING');
     });
     const offDead = hudBridge.on('player-dead',     ({ kills }) => {
-      setFinalStats({ hp: 0, shields: 0, kills });
+      setFinalStats({ hp: 0, shields: 0, kills, wave: currentWaveRef.current });
       setGameState('DEATH');
     });
     return () => { offHp(); offSh(); offWin(); offAst(); offDead(); offW2Ready(); offLand(); };
@@ -58,18 +59,21 @@ export default function GamePage() {
 
   const handleStart = useCallback((d: Difficulty) => {
     setDifficulty(d);
-    hpRef.current      = 100;
-    shieldsRef.current = 50;
+    hpRef.current        = 100;
+    shieldsRef.current   = 50;
+    currentWaveRef.current = 1;
     sceneRef.current?.startGame(d);
     setGameState('PLAYING');
   }, []);
 
   const handleContinueToWave2 = useCallback(() => {
+    currentWaveRef.current = 2;
     sceneRef.current?.prepareWave2();
     setGameState('WAVE2_LOADING');
   }, []);
 
   const handleStartWave3 = useCallback(() => {
+    currentWaveRef.current = 3;
     sceneRef.current?.startWave3();
     setGameState('PLAYING');
   }, []);
@@ -111,7 +115,7 @@ export default function GamePage() {
           wave={3}
         />
       )}
-      {gameState === 'DEATH'        && <DeathScreen kills={finalStats.kills} onRetry={handleReset} />}
+      {gameState === 'DEATH'        && <DeathScreen kills={finalStats.kills} wave={finalStats.wave} onRetry={handleReset} />}
     </div>
   );
 }
